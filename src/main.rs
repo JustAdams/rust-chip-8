@@ -7,8 +7,9 @@ const WIDTH: u8 = 64;
 const PROGRAM_START: u16 = 0x200;
 
 fn main() {
-    let display_height = HEIGHT;
-    let display_width = WIDTH;
+    let mut display_buffer: [[bool; WIDTH as usize]; HEIGHT as usize] = [[false; WIDTH as usize]; HEIGHT as usize];
+    let mut display = [['.'; WIDTH as usize]; HEIGHT as usize];
+
 
     // component setup
     // chip-8 program loaded starting at address 0x200 (512)
@@ -72,6 +73,14 @@ fn main() {
         match curr_opcode {
             0x00E0 => {}, // clear screen
             _ => {}
+        }
+
+        // draw the display
+        for r in 0..display.len() {
+            for c in 0..display[0].len() {
+                print!("{}", display[r][c]);
+            }
+            println!();
         }
 
         // slow down the program
