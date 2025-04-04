@@ -91,6 +91,17 @@ fn main() {
         println!("{:?}", opcode);
 
 
+        // decode
+        let nibbles = ((opcode & 0xF000) >> 12, (opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4, (opcode & 0x000F) >> 0);
+
+        // execute
+        match nibbles {
+            (0x0, 0x0, 0xE, 0x0) => { /* clear screen */ },
+            (0x1, _, _, _) => { /* jump */  }
+            (0x6, _, _, _) => { /* set */ }
+            (0x7, _, _, _) => { /* add */ },
+            _ => {}
+        }
 
         break;
     }
