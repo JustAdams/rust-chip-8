@@ -49,7 +49,7 @@ fn main() {
             (0x4, _, _, _) => { /* skip */ },
             (0x6, _, _, _) => { /* set */ },
             (0x7, _, _, _) => { /* add */ },
-            (0x8, _, _, 0x0) => { chip8.set(nibbles.1 as usize, nibbles.2); },
+            (0x8, _, _, 0x0) => { chip8.set(nibbles.1 as usize, chip8.var_registers[nibbles.2 as usize]); },
             (0x8, _, _, 0x1) => { chip8.or(nibbles.1 as usize, nibbles.2 as usize); },
             (0x8, _, _, 0x2) => { chip8.and(nibbles.1 as usize, nibbles.2 as usize); },
             (0x8, _, _, 0x3) => { /* XOR */ },

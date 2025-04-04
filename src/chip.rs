@@ -55,34 +55,59 @@ impl Chip8 {
         println!("ROM loaded");
     }
 
-    /** The value val is added to the current value at register v_reg */
-    pub fn add(&mut self, v_reg: usize, val: u8) {
-        if v_reg > 0xF { panic!("Invalid register accessed"); }
-        self.var_registers[v_reg] += val;
+    pub fn clear_screen(&mut self) {
+        panic!("Clear screen not implemented");
     }
 
-    /** The value val is assigned to register v_reg */
+    pub fn jump(&mut self, addr: u16) {
+        if addr >= 0x1000 { panic!("Attempting to jump to an out of bounds location"); }
+        self.program_counter = addr as usize;
+    }
+
+
+    /** 6XNN / 8XY0 - The value val is assigned to register v_reg */
     pub fn set(&mut self, v_reg: usize, val: u8) {
         if v_reg > 0xF { panic!("Invalid register accessed"); }
         self.var_registers[v_reg] = val;
     }
 
+    /** 8XY1 - */
     pub fn or(&mut self, v_reg_one: usize, v_reg_two: usize) {
         if v_reg_one > 0xF || v_reg_two > 0xF { panic!("Invalid register accessed"); }
         let or_val: u8 = self.var_registers[v_reg_one] | self.var_registers[v_reg_two];
         self.var_registers[v_reg_one] = or_val;
     }
 
+    /** 8XY2 - */
     pub fn and(&mut self, v_reg_one: usize, v_reg_two: usize) {
         if v_reg_one > 0xF || v_reg_two > 0xF { panic!("Invalid register accessed"); }
         let and_val: u8 = self.var_registers[v_reg_one] & self.var_registers[v_reg_two];
         self.var_registers[v_reg_one] = and_val;
+    }
+
+    /** 8XY4 - The value val is added to the current value at register v_reg */
+    pub fn add(&mut self, v_reg: usize, val: u8) {
+        if v_reg > 0xF { panic!("Invalid register accessed"); }
+        self.var_registers[v_reg] += val;
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn jump_valid() {
+        let mut chip = Chip8::new();
+        chip.jump(0x343);
+        assert_eq!(chip.program_counter, 0x343);
+    }
+    #[test]
+    #[should_panic]
+    fn jump_out_of_bounds() {
+        let mut chip = Chip8::new();
+        chip.jump(0x1001);
+    }
 
     #[test]
     fn add_valid() {
