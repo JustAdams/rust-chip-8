@@ -1,6 +1,8 @@
-use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
+use chip::Chip8;
+
+mod chip;
 
 const PROGRAM_START: usize = 0x200; // starting position for ROM instructions
 const SCREEN_WIDTH: usize = 64;
@@ -21,61 +23,6 @@ impl ROM {
     }
 }
 
-struct Chip8 {
-    memory: [u8; 4096], // RAM
-    stack : [u16; 16],
-    stack_ptr: u8, // tracks position of most recent value
-    index_reg: u16, // index register
-    delay_timer: u8, // delay timer
-    sound_timer: u8, // sound timer
-    var_registers: [u8; 16], // variable registers
-    program_counter: usize,
-}
-impl Chip8 {
-
-    fn new() -> Self {
-        // RAM
-        let mut memory: [u8; 4096] = [0; 4096];
-
-        let fonts: [u8; 80] = [
-            0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-            0x20, 0x60, 0x20, 0x20, 0x70, // 1
-            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-            0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-            0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-            0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-            0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-            0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-            0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-            0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-            0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-            0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-            0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-            0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-            0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-            0xF0, 0x80, 0xF0, 0x80, 0x80, // F
-        ];
-        for i in 0..fonts.len() {
-            memory[0x50 + i] = fonts[i];
-        }
-
-        Chip8 {
-            memory,
-            stack: [0; 16],
-            stack_ptr: 0,
-            index_reg: 0,
-            delay_timer: 0,
-            sound_timer: 0,
-            var_registers: [0; 16],
-            program_counter: PROGRAM_START,
-        }
-    }
-    pub fn load_rom(&mut self, rom: ROM) {
-        self.memory[PROGRAM_START..].copy_from_slice(&rom.memory);
-        println!("ROM loaded");
-    }
-}
-
 fn main() {
     let mut chip8 = Chip8::new();
   //  let mut display_buffer: [[bool; SCREEN_WIDTH]; SCREEN_HEIGHT] = [[false; SCREEN_WIDTH]; SCREEN_HEIGHT];
@@ -92,14 +39,21 @@ fn main() {
 
 
         // decode
-        let nibbles = ((opcode & 0xF000) >> 12, (opcode & 0x0F00) >> 8, (opcode & 0x00F0) >> 4, (opcode & 0x000F) >> 0);
+        let nibbles: (u8, u8, u8, u8) = (((opcode & 0xF000) >> 12) as u8, ((opcode & 0x0F00) >> 8) as u8, ((opcode & 0x00F0) >> 4) as u8, ((opcode & 0x000F) >> 0) as u8);
 
         // execute
         match nibbles {
             (0x0, 0x0, 0xE, 0x0) => { /* clear screen */ },
-            (0x1, _, _, _) => { /* jump */  }
-            (0x6, _, _, _) => { /* set */ }
+            (0x1, _, _, _) => { /* jump */  },
+            (0x3, _, _, _) => { /* skip */ },
+            (0x4, _, _, _) => { /* skip */ },
+            (0x6, _, _, _) => { /* set */ },
             (0x7, _, _, _) => { /* add */ },
+            (0x8, _, _, 0x0) => { chip8.set(nibbles.1 as usize, nibbles.2); },
+            (0x8, _, _, 0x1) => { chip8.or(nibbles.1 as usize, nibbles.2 as usize); },
+            (0x8, _, _, 0x2) => { chip8.and(nibbles.1 as usize, nibbles.2 as usize); },
+            (0x8, _, _, 0x3) => { /* XOR */ },
+            (0x8, _, _, 0x4) => { chip8.add(nibbles.1 as usize, nibbles.2); },
             _ => {}
         }
 
