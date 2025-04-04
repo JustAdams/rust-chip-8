@@ -1,89 +1,97 @@
-use std::thread::sleep;
-use std::time::Duration;
+use std::fs;
+use std::fs::File;
+use std::io::prelude::*;
 
-// display in pixels
-const HEIGHT: u8 = 32;
-const WIDTH: u8 = 64;
-const PROGRAM_START: u16 = 0x200;
+const PROGRAM_START: usize = 0x200; // starting position for ROM instructions
+const SCREEN_WIDTH: usize = 64;
+const SCREEN_HEIGHT: usize = 32;
+
+struct ROM {
+    memory: [u8; 3584],
+}
+impl ROM {
+    fn new(file_path: &str) -> Self {
+        let mut file = File::open(file_path).expect("Unable to open ROM");
+        let mut buffer: [u8; 3584] = [0; 3584];
+        file.read(&mut buffer).expect("Unable to read ROM file");
+
+        ROM {
+            memory: buffer
+        }
+    }
+}
+
+struct Chip8 {
+    memory: [u8; 4096], // RAM
+    stack : [u16; 16],
+    stack_ptr: u8, // tracks position of most recent value
+    index_reg: u16, // index register
+    delay_timer: u8, // delay timer
+    sound_timer: u8, // sound timer
+    var_registers: [u8; 16], // variable registers
+    program_counter: usize,
+}
+impl Chip8 {
+
+    fn new() -> Self {
+        // RAM
+        let mut memory: [u8; 4096] = [0; 4096];
+
+        let fonts: [u8; 80] = [
+            0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+            0x20, 0x60, 0x20, 0x20, 0x70, // 1
+            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+            0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+            0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+            0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+            0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+            0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+            0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+            0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+            0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+            0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+            0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+            0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+            0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+            0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+        ];
+        for i in 0..fonts.len() {
+            memory[0x50 + i] = fonts[i];
+        }
+
+        Chip8 {
+            memory,
+            stack: [0; 16],
+            stack_ptr: 0,
+            index_reg: 0,
+            delay_timer: 0,
+            sound_timer: 0,
+            var_registers: [0; 16],
+            program_counter: PROGRAM_START,
+        }
+    }
+    pub fn load_rom(&mut self, rom: ROM) {
+        self.memory[PROGRAM_START..].copy_from_slice(&rom.memory);
+        println!("ROM loaded");
+    }
+}
 
 fn main() {
-    let mut display_buffer: [[bool; WIDTH as usize]; HEIGHT as usize] = [[false; WIDTH as usize]; HEIGHT as usize];
-    let mut display = [['.'; WIDTH as usize]; HEIGHT as usize];
+    let mut chip8 = Chip8::new();
+  //  let mut display_buffer: [[bool; SCREEN_WIDTH]; SCREEN_HEIGHT] = [[false; SCREEN_WIDTH]; SCREEN_HEIGHT];
+    let rom: ROM = ROM::new("roms/IBMLogo.ch8");
+    chip8.load_rom(rom);
 
 
-    // component setup
-    // chip-8 program loaded starting at address 0x200 (512)
-    let mut memory: [u8; 4096] = [0; 4096];
-
-    // program counter - probably making it too large
-    let mut pc: u32 = 0x200; // starting at address 0x200 (512)
-
-    // index register - points to locations in memory
-    let mut idx_reg: u32;
-
-    let mut delay_timer: u8 = 0; // decremented by one 60 times per second until it reaches 0
-    let mut sound_timer: u8 = 0; // beeps if its not zero
-
-    // general purpose variable registers V0 through VF
-    // VF is also often used as a flag register
-    let mut var_regs: [u8; 16] = [0; 16];
-
-    // fonts get stored in memory
-    let font: [u8; 80] = [
-        0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-        0x20, 0x60, 0x20, 0x20, 0x70, // 1
-        0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-        0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-        0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-        0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-        0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-        0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-        0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-        0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-        0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-        0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-        0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-        0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-        0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-        0xF0, 0x80, 0xF0, 0x80, 0x80, // F
-    ];
-
-    // todo: eventually make this use emulated memory
-    let mut instruction_stack: Vec<u8> = Vec::new();
-
-
-
-    // program loop should run at 60fps
+    // cycle
     loop {
-        // fetch opcode from memory at the current PC
-        if pc >= 0x1000 {
-            panic!("Out of memory!");
-        }
 
-        // an instruction is two successive bytes
-        let curr_opcode = memory[pc as usize];
-        pc += 1;
-        let curr_instr = memory[pc as usize];
-        pc += 1; // always increment by two
+        // fetch
+        let opcode: u16 = (chip8.memory[chip8.program_counter] as u16) << 8 | (chip8.memory[chip8.program_counter as usize + 1] as u16);
+        println!("{:?}", opcode);
 
-        // decode the instruction
-        println!("num: {}", curr_opcode & 0);
 
-        // execute the instruction
-        match curr_opcode {
-            0x00E0 => {}, // clear screen
-            _ => {}
-        }
 
-        // draw the display
-        for r in 0..display.len() {
-            for c in 0..display[0].len() {
-                print!("{}", display[r][c]);
-            }
-            println!();
-        }
-
-        // slow down the program
-        sleep(Duration::from_millis(1000));
+        break;
     }
 }
