@@ -66,7 +66,8 @@ impl Chip8 {
         self.program_counter += 2;
     }
 
-    pub fn jump(&mut self, addr: u16) {
+    /** 1NNN - Jumps the PC to NNN */
+    pub fn op_1NNN(&mut self, addr: u16) {
         if addr >= 0x1000 { panic!("Attempting to jump to an out of bounds location"); }
         self.program_counter = addr as usize;
     }
@@ -76,6 +77,18 @@ impl Chip8 {
     pub fn set(&mut self, v_reg: usize, val: u8) {
         if v_reg > 0xF { panic!("Invalid register accessed"); }
         self.var_registers[v_reg] = val;
+        self.program_counter += 2;
+    }
+
+    /** Sets VX to the value given */
+    pub fn op_6XNN(&mut self, vx: usize, val: u8) {
+        self.var_registers[vx] = val;
+        self.program_counter += 2;
+    }
+
+    /** Adds the value NN to VX */
+    pub fn op_7XNN(&mut self, vx: usize, val: u8) {
+        self.var_registers[vx] = self.var_registers[vx].wrapping_add(val);
         self.program_counter += 2;
     }
 
@@ -105,6 +118,7 @@ impl Chip8 {
     /** ANNN - Sets the index register I to value NNN */
     pub fn set_index(&mut self, opcode: u16) {
         self.index_reg = opcode & 0x0FFF;
+        self.program_counter += 2;
     }
 
     /** DXYN - Draws a sprite from memory to the VX and VY coordinates */
@@ -148,14 +162,14 @@ mod tests {
     #[test]
     fn jump_valid() {
         let mut chip = Chip8::new();
-        chip.jump(0x343);
+        chip.op_1NNN(0x343);
         assert_eq!(chip.program_counter, 0x343);
     }
     #[test]
     #[should_panic]
     fn jump_out_of_bounds() {
         let mut chip = Chip8::new();
-        chip.jump(0x1001);
+        chip.op_1NNN(0x1001);
     }
 
     #[test]
@@ -205,5 +219,30 @@ mod tests {
         let mut chip = Chip8::new();
         chip.set_index(0xAABC);
         assert_eq!(chip.index_reg, 0xABC);
+    }
+
+    #[test]
+    fn op_6XNN_valid() {
+        let mut chip = Chip8::new();
+        let expected = 0x2F;
+        chip.op_6XNN(0x5, 0x2F);
+        assert_eq!(expected, chip.var_registers[0x5]);
+    }
+
+    #[test]
+    fn op_7XNN_valid() {
+        let mut chip = Chip8::new();
+        chip.var_registers[0x5] = 0x5;
+        let expected: u8 = 0x19;
+        chip.op_7XNN(0x5, 0x14);
+        assert_eq!(expected, chip.var_registers[5]);
+    }
+    #[test]
+    fn op_7XNN_valid_overflow() {
+        let mut chip = Chip8::new();
+        chip.var_registers[0x5] = 0x5;
+        let expected: u8 = 0x4;
+        chip.op_7XNN(0x5, 0xFF);
+        assert_eq!(expected, chip.var_registers[5]);
     }
 }
