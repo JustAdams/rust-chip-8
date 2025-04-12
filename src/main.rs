@@ -3,6 +3,7 @@ use std::io::prelude::*;
 use chip::Chip8;
 
 mod chip;
+mod chip_tests;
 
 const PROGRAM_START: usize = 0x200; // starting position for ROM instructions
 
