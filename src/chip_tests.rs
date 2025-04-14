@@ -13,16 +13,17 @@ fn initialized_correctly() {
 }
 
 #[test]
-fn jump_valid() {
+fn op_1nnn_valid() {
     let mut chip = Chip8::new();
-    chip.op_1NNN(0x343);
+    assert_ne!(chip.program_counter, 0x343, "starting position should not equal the expected position prior to the jump");
+    chip.op_1nnn(0x343);
     assert_eq!(chip.program_counter, 0x343);
 }
 #[test]
 #[should_panic]
-fn jump_out_of_bounds() {
+fn op_1nnn_out_of_range() {
     let mut chip = Chip8::new();
-    chip.op_1NNN(0x1001);
+    chip.op_1nnn(0x1001);
 }
 
 #[test]
@@ -70,31 +71,33 @@ fn and_valid() {
 #[test]
 fn set_index_valid() {
     let mut chip = Chip8::new();
-    chip.set_index(0xAABC);
+    assert_ne!(chip.index_reg, 0xABC);
+    chip.op_annn(0xABC);
     assert_eq!(chip.index_reg, 0xABC);
 }
 
+/** Test that the VX register can have a value assigned to it */
 #[test]
-fn op_6XNN_valid() {
+fn op_6xnn_valid() {
     let mut chip = Chip8::new();
-    let expected = 0x2F;
-    chip.op_6XNN(0x5, 0x2F);
+    let expected = 0x3F;
+    chip.op_6xnn(0x5, 0x3F);
     assert_eq!(expected, chip.var_registers[0x5]);
 }
 
 #[test]
-fn op_7XNN_valid() {
+fn op_7xnn_valid() {
     let mut chip = Chip8::new();
     chip.var_registers[0x5] = 0x5;
     let expected: u8 = 0x19;
-    chip.op_7XNN(0x5, 0x14);
+    chip.op_7xnn(0x5, 0x14);
     assert_eq!(expected, chip.var_registers[5]);
 }
 #[test]
-fn op_7XNN_valid_overflow() {
+fn op_7xnn_valid_overflow() {
     let mut chip = Chip8::new();
     chip.var_registers[0x5] = 0x5;
     let expected: u8 = 0x4;
-    chip.op_7XNN(0x5, 0xFF);
+    chip.op_7xnn(0x5, 0xFF);
     assert_eq!(expected, chip.var_registers[5]);
 }

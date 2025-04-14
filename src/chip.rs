@@ -1,10 +1,11 @@
-use crate::{PROGRAM_START, ROM};
+use crate::PROGRAM_START;
+use crate::rom::ROM;
 
-const SCREEN_WIDTH: usize = 64;
-const SCREEN_HEIGHT: usize = 32;
+pub const SCREEN_WIDTH: usize = 64;
+pub const SCREEN_HEIGHT: usize = 32;
 
 pub struct Chip8 {
-    pub memory: [u8; 4096], // RAM
+    pub memory: [u8; 4096], // 4kb of RAM
     pub stack : [u16; 16],
     pub stack_ptr: u8, // tracks position of most recent value
     pub index_reg: u16, // index register
@@ -12,7 +13,7 @@ pub struct Chip8 {
     pub sound_timer: u8, // sound timer
     pub var_registers: [u8; 16], // variable registers
     pub program_counter: usize,
-    pub display: [[u8; SCREEN_HEIGHT]; SCREEN_WIDTH],
+    pub display: [[u8; SCREEN_WIDTH]; SCREEN_HEIGHT],
 }
 
 impl Chip8 {
@@ -52,22 +53,21 @@ impl Chip8 {
             sound_timer: 0,
             var_registers: [0; 16],
             program_counter: PROGRAM_START,
-            display: [[0; SCREEN_HEIGHT];  SCREEN_WIDTH]
+            display: [[0x00; SCREEN_WIDTH];  SCREEN_HEIGHT],
         }
     }
     pub fn load_rom(&mut self, rom: ROM) {
         self.memory[PROGRAM_START..].copy_from_slice(&rom.memory);
-        println!("ROM loaded");
     }
 
     /** 00E0 - Clears the screen */
     pub fn clear_display(&mut self) {
-        self.display = [[0; SCREEN_HEIGHT];  SCREEN_WIDTH];
+        self.display = [[0x00; SCREEN_WIDTH];  SCREEN_HEIGHT];
         self.program_counter += 2;
     }
 
     /** 1NNN - Jumps the PC to NNN */
-    pub fn op_1NNN(&mut self, addr: u16) {
+    pub fn op_1nnn(&mut self, addr: u16) {
         if addr >= 0x1000 { panic!("Attempting to jump to an out of bounds location"); }
         self.program_counter = addr as usize;
     }
@@ -81,13 +81,13 @@ impl Chip8 {
     }
 
     /** Sets VX to the value given */
-    pub fn op_6XNN(&mut self, vx: usize, val: u8) {
+    pub fn op_6xnn(&mut self, vx: usize, val: u8) {
         self.var_registers[vx] = val;
         self.program_counter += 2;
     }
 
-    /** Adds the value NN to VX */
-    pub fn op_7XNN(&mut self, vx: usize, val: u8) {
+    /** Adds a value to VX */
+    pub fn op_7xnn(&mut self, vx: usize, val: u8) {
         self.var_registers[vx] = self.var_registers[vx].wrapping_add(val);
         self.program_counter += 2;
     }
@@ -116,24 +116,27 @@ impl Chip8 {
     }
 
     /** ANNN - Sets the index register I to value NNN */
-    pub fn set_index(&mut self, opcode: u16) {
-        self.index_reg = opcode & 0x0FFF;
+    pub fn op_annn(&mut self, nnn: u16) {
+        self.index_reg = nnn;
         self.program_counter += 2;
     }
 
-    /** DXYN - Draws a sprite from memory to the VX and VY coordinates */
+    /** DXYN - Sets a sprite from memory to the VX and VY coordinates */
     pub fn draw(&mut self, vx: usize, vy: usize, n: usize) {
-        println!("drawing");
-        let x_coord = self.var_registers[vx] % SCREEN_WIDTH as u8;
-        let y_coord = self.var_registers[vy] % SCREEN_HEIGHT as u8;
-
+        self.var_registers[0xF] = 0x0;
         for row in 0..n {
-            let sprite_row = self.memory[self.index_reg as usize + row];
+            let curr_idx = self.index_reg as usize + row;
+            let sprite_byte = self.memory[curr_idx];
+
+            let y_coord = (self.var_registers[vy] as usize + row) % SCREEN_HEIGHT;
             for col in 0..8 {
-                let pixel = sprite_row & (0x80 >> col);
-                self.display[x_coord as usize][y_coord as usize] = pixel;
+                let x_coord = (self.var_registers[vx] as usize + col) % SCREEN_WIDTH;
+                let bit = sprite_byte >> (7 - col) & 1;
+                self.var_registers[0xF] |= bit & self.display[y_coord][x_coord];
+                self.display[y_coord][x_coord] ^= bit;
             }
         }
+
         self.program_counter += 2;
     }
 
