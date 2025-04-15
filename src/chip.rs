@@ -6,7 +6,7 @@ pub const SCREEN_HEIGHT: usize = 32;
 
 pub struct Chip8 {
     pub memory: [u8; 4096], // 4kb of RAM
-    pub stack : [u16; 16],
+    pub stack: [u16; 16],
     pub stack_ptr: u8, // tracks position of most recent value
     pub index_reg: u16, // index register
     pub delay_timer: u8, // delay timer
@@ -17,7 +17,6 @@ pub struct Chip8 {
 }
 
 impl Chip8 {
-
     pub fn new() -> Self {
         // RAM
         let mut memory: [u8; 4096] = [0; 4096];
@@ -53,7 +52,7 @@ impl Chip8 {
             sound_timer: 0,
             var_registers: [0; 16],
             program_counter: PROGRAM_START,
-            display: [[0x00; SCREEN_WIDTH];  SCREEN_HEIGHT],
+            display: [[0x00; SCREEN_WIDTH]; SCREEN_HEIGHT],
         }
     }
     pub fn load_rom(&mut self, rom: ROM) {
@@ -62,8 +61,7 @@ impl Chip8 {
 
     /** 00E0 - Clears the screen */
     pub fn clear_display(&mut self) {
-        self.display = [[0x00; SCREEN_WIDTH];  SCREEN_HEIGHT];
-        self.program_counter += 2;
+        self.display = [[0x00; SCREEN_WIDTH]; SCREEN_HEIGHT];
     }
 
     /** 1NNN - Jumps the PC to NNN */
@@ -72,24 +70,24 @@ impl Chip8 {
         self.program_counter = addr as usize;
     }
 
+    /** 2NNN - Call */
+
+
 
     /** 6XNN / 8XY0 - The value val is assigned to register v_reg */
     pub fn set(&mut self, v_reg: usize, val: u8) {
         if v_reg > 0xF { panic!("Invalid register accessed"); }
         self.var_registers[v_reg] = val;
-        self.program_counter += 2;
     }
 
     /** Sets VX to the value given */
     pub fn op_6xnn(&mut self, vx: usize, val: u8) {
         self.var_registers[vx] = val;
-        self.program_counter += 2;
     }
 
     /** Adds a value to VX */
     pub fn op_7xnn(&mut self, vx: usize, val: u8) {
         self.var_registers[vx] = self.var_registers[vx].wrapping_add(val);
-        self.program_counter += 2;
     }
 
     /** 8XY1 - */
@@ -97,7 +95,6 @@ impl Chip8 {
         if v_reg_one > 0xF || v_reg_two > 0xF { panic!("Invalid register accessed"); }
         let or_val: u8 = self.var_registers[v_reg_one] | self.var_registers[v_reg_two];
         self.var_registers[v_reg_one] = or_val;
-        self.program_counter += 2;
     }
 
     /** 8XY2 - */
@@ -105,20 +102,17 @@ impl Chip8 {
         if v_reg_one > 0xF || v_reg_two > 0xF { panic!("Invalid register accessed"); }
         let and_val: u8 = self.var_registers[v_reg_one] & self.var_registers[v_reg_two];
         self.var_registers[v_reg_one] = and_val;
-        self.program_counter += 2;
     }
 
     /** 8XY4 - The value val is added to the current value at register v_reg */
     pub fn add(&mut self, v_reg: usize, val: u8) {
         if v_reg > 0xF { panic!("Invalid register accessed"); }
         self.var_registers[v_reg] += val;
-        self.program_counter += 2;
     }
 
     /** ANNN - Sets the index register I to value NNN */
     pub fn op_annn(&mut self, nnn: u16) {
         self.index_reg = nnn;
-        self.program_counter += 2;
     }
 
     /** DXYN - Sets a sprite from memory to the VX and VY coordinates */
@@ -136,8 +130,6 @@ impl Chip8 {
                 self.display[y_coord][x_coord] ^= bit;
             }
         }
-
-        self.program_counter += 2;
     }
 
     /** FX1E - Add to I index */
