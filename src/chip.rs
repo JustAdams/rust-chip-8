@@ -74,13 +74,7 @@ impl Chip8 {
 
 
 
-    /** 6XNN / 8XY0 - The value val is assigned to register v_reg */
-    pub fn set(&mut self, v_reg: usize, val: u8) {
-        if v_reg > 0xF { panic!("Invalid register accessed"); }
-        self.var_registers[v_reg] = val;
-    }
-
-    /** Sets VX to the value given */
+    /** 6XNN - Sets VX to the value given */
     pub fn op_6xnn(&mut self, vx: usize, val: u8) {
         self.var_registers[vx] = val;
     }
@@ -90,24 +84,35 @@ impl Chip8 {
         self.var_registers[vx] = self.var_registers[vx].wrapping_add(val);
     }
 
-    /** 8XY1 - */
-    pub fn or(&mut self, v_reg_one: usize, v_reg_two: usize) {
-        if v_reg_one > 0xF || v_reg_two > 0xF { panic!("Invalid register accessed"); }
-        let or_val: u8 = self.var_registers[v_reg_one] | self.var_registers[v_reg_two];
-        self.var_registers[v_reg_one] = or_val;
+    /** 8XY0 - Sets VX to the value of VY */
+    pub fn op_8xy0(&mut self, vx: usize, vy: usize) {
+        if vx > 0xF || vy > 0xF { panic!("Invalid register accessed"); }
+        self.var_registers[vx] = self.var_registers[vy];
     }
 
-    /** 8XY2 - */
-    pub fn and(&mut self, v_reg_one: usize, v_reg_two: usize) {
-        if v_reg_one > 0xF || v_reg_two > 0xF { panic!("Invalid register accessed"); }
-        let and_val: u8 = self.var_registers[v_reg_one] & self.var_registers[v_reg_two];
-        self.var_registers[v_reg_one] = and_val;
+    /** 8XY1 - Sets VX to VX ^ VY */
+    pub fn op_8xy1(&mut self, vx: usize, vy: usize) {
+        if vx > 0xF || vy > 0xF { panic!("Invalid register accessed"); }
+        let or_val: u8 = self.var_registers[vx] | self.var_registers[vy];
+        self.var_registers[vx] = or_val;
+    }
+
+    /** 8XY2 - VX is set to VX & VY */
+    pub fn op_8xy2(&mut self, vx: usize, vy: usize) {
+        if vx > 0xF || vy > 0xF { panic!("Invalid register accessed"); }
+        let and_val: u8 = self.var_registers[vx] & self.var_registers[vy];
+        self.var_registers[vx] = and_val;
+    }
+
+    /** 8XY3 - VX is set to VX ^ VY */
+    pub fn op_8xy3(&mut self, vx: usize, vy: usize) {
+        self.var_registers[vx] ^= self.var_registers[vy];
     }
 
     /** 8XY4 - The value val is added to the current value at register v_reg */
-    pub fn add(&mut self, v_reg: usize, val: u8) {
-        if v_reg > 0xF { panic!("Invalid register accessed"); }
-        self.var_registers[v_reg] += val;
+    pub fn op_8xy4(&mut self, vx: usize, vy: usize) {
+        if vx > 0xF || vy > 0xF { panic!("Invalid register accessed"); }
+        self.var_registers[vx] += self.var_registers[vy];
     }
 
     /** ANNN - Sets the index register I to value NNN */

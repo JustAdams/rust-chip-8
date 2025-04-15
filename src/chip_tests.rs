@@ -26,46 +26,49 @@ fn op_1nnn_out_of_range() {
     chip.op_1nnn(0x1001);
 }
 
-#[test]
-fn add_valid() {
-    let mut chip = Chip8::new();
-    chip.var_registers[5] = 0x5;
 
-    chip.add(0x5, 25);
-    assert_eq!(chip.var_registers[5], 0x1E);
-}
 #[test]
-#[should_panic]
-fn add_invalid_register() {
+fn op_8xy0_valid() {
     let mut chip = Chip8::new();
-    chip.add(0x10, 25);
+    chip.var_registers[0x5] = 0x5;
+    chip.var_registers[0x8] = 0x1;
+    chip.op_8xy0(0x5, 0x8);
+    assert_eq!(chip.var_registers[0x5], 0x1);
 }
 
 #[test]
-fn set_valid() {
-    let mut chip = Chip8::new();
-    chip.var_registers[5] = 0x5;
-    chip.set(0x5, 25);
-    assert_eq!(chip.var_registers[5], 0x19);
-}
-
-#[test]
-fn or_valid() {
+fn op_8xy1_valid() {
     let mut chip = Chip8::new();
     chip.var_registers[0x5] = 0x5;
     chip.var_registers[0x1] = 0x3;
-    chip.or(0x5, 0x1);
+    chip.op_8xy1(0x5, 0x1);
     let expected = 0x5 | 0x3;
     assert_eq!(expected, chip.var_registers[0x5]);
 }
 #[test]
-fn and_valid() {
+fn op_8xy2_valid() {
     let mut chip = Chip8::new();
     chip.var_registers[0x5] = 0x5;
     chip.var_registers[0x1] = 0x3;
-    chip.and(0x5, 0x1);
+    chip.op_8xy2(0x5, 0x1);
     let expected = 0x5 & 0x3;
     assert_eq!(expected, chip.var_registers[0x5]);
+}
+
+#[test]
+fn op_8xy4_valid() {
+    let mut chip = Chip8::new();
+    chip.var_registers[5] = 0x5;
+    chip.var_registers[8] = 0x1;
+
+    chip.op_8xy4(0x5, 8);
+    assert_eq!(chip.var_registers[5], 0x6);
+}
+#[test]
+#[should_panic]
+fn op_8xy4_invalid_register() {
+    let mut chip = Chip8::new();
+    chip.op_8xy4(0x10, 25);
 }
 
 #[test]
@@ -100,4 +103,17 @@ fn op_7xnn_valid_overflow() {
     let expected: u8 = 0x4;
     chip.op_7xnn(0x5, 0xFF);
     assert_eq!(expected, chip.var_registers[5]);
+}
+
+/** VX is set to the XOR of VX and VY */
+#[test]
+fn op_8xnn_valid() {
+    let mut chip = Chip8::new();
+    let val1 = 0x5;
+    let val2 = 0x3;
+    chip.var_registers[0x5] = val1;
+    chip.var_registers[0x6] = val2;
+    let expected = val1 ^ val2;
+    chip.op_8xy3(0x5, 0x6);
+    assert_eq!(expected, chip.var_registers[0x5]);
 }

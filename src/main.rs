@@ -1,3 +1,5 @@
+use std::thread::{sleep, sleep_ms};
+use std::time::Duration;
 use chip::Chip8;
 use rom::ROM;
 
@@ -22,8 +24,8 @@ fn main() {
 
         // decode
         let nibbles: (u8, u8, u8, u8) = (((opcode & 0xF000) >> 12) as u8, ((opcode & 0x0F00) >> 8) as u8, ((opcode & 0x00F0) >> 4) as u8, (opcode & 0x000F) as u8);
-        let x = nibbles.1; // second nibble
-        let y = nibbles.2; // third nibble
+        let x = nibbles.1 as usize; // second nibble - VX
+        let y = nibbles.2 as usize; // third nibble - VY
         let n = nibbles.3; // fourth nibble
         let nn = (opcode & 0x00FF) as u8;
         let nnn = opcode & 0x0FFF;
@@ -36,13 +38,13 @@ fn main() {
             (0x3, _, _, _) => { /* skip */ }
             (0x4, _, _, _) => { /* skip */ }
             (0x5, _, _, 0x0) => { /* skip next if vx == vy */ }
-            (0x6, _, _, _) => { chip8.op_6xnn(x as usize, nn); }
-            (0x7, _, _, _) => { chip8.op_7xnn(x as usize, nn); }
-            (0x8, _, _, 0x0) => { chip8.set(x as usize, chip8.var_registers[y as usize]); }
-            (0x8, _, _, 0x1) => { chip8.or(x as usize, y as usize); }
-            (0x8, _, _, 0x2) => { chip8.and(x as usize, y as usize); }
-            (0x8, _, _, 0x3) => { /* XOR */ }
-            (0x8, _, _, 0x4) => { chip8.add(x as usize, y); }
+            (0x6, _, _, _) => { chip8.op_6xnn(x, nn); }
+            (0x7, _, _, _) => { chip8.op_7xnn(x, nn); }
+            (0x8, _, _, 0x0) => { chip8.op_8xy0(x, y); }
+            (0x8, _, _, 0x1) => { chip8.op_8xy1(x, y); }
+            (0x8, _, _, 0x2) => { chip8.op_8xy2(x, y); }
+            (0x8, _, _, 0x3) => { chip8.op_8xy3(x, y); }
+            (0x8, _, _, 0x4) => { chip8.op_8xy4(x, y); }
             (0x8, _, _, 0x5) => { /* set VX to (VX - VY) */ }
             (0x8, _, _, 0x6) => { /* shift */ }
             (0x8, _, _, 0x7) => { /* set VX to (VX - VY) */ }
@@ -51,15 +53,16 @@ fn main() {
             (0xA, _, _, _) => { chip8.op_annn(nnn); }
             (0xB, _, _, _) => { /* jump with offset */ }
             (0xC, _, _, _) => { /* random */ }
-            (0xD, _, _, _) => { chip8.draw(x as usize, y as usize, n as usize); }
+            (0xD, _, _, _) => { chip8.draw(x, y, n as usize); }
             (0xE, _, 0x9, 0xE) => { /* skip if key */ }
             (0xE, _, 0xA, 0x1) => { /* skip if key */ }
-            (0xF, _, 0x1, 0xE) => { chip8.add_i_index(x as usize); }
-            _ => {  }
+            (0xF, _, 0x1, 0xE) => { chip8.add_i_index(x); }
+            _ => { panic!("Unsupported opcode"); }
         }
 
         // draw
         draw_screen(&chip8);
+        sleep(Duration::from_millis(500));
     }
 }
 
