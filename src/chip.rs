@@ -73,6 +73,29 @@ impl Chip8 {
     /** 2NNN - Call */
 
 
+    /** 3XNN - Skip instruction if the value in var_registers[VX] == NN */
+    pub fn op_3xnn(&mut self, vx: usize, nn: u8) {
+        if vx > 0xF { panic!("Invalid register accessed"); }
+        if self.var_registers[vx] == nn {
+            self.program_counter += 2;
+        }
+    }
+
+    /** 4XNN - Skip instruction if the value in var_registers[VX] != NN */
+    pub fn op_4xnn(&mut self, vx: usize, nn: u8) {
+        if vx > 0xF { panic!("Invalid register accessed"); }
+        if self.var_registers[vx] != nn {
+            self.program_counter += 2;
+        }
+    }
+
+    /** 5XY0 - Skip if var_registers[VX] == var_registers[VY] */
+    pub fn op_5xy0(&mut self, vx: usize, vy: usize) {
+        if vx > 0xF || vy > 0xF { panic!("Invalid register accessed"); }
+        if self.var_registers[vx] == self.var_registers[vy] {
+            self.program_counter += 2;
+        }
+    }
 
     /** 6XNN - Sets VX to the value given */
     pub fn op_6xnn(&mut self, vx: usize, val: u8) {
@@ -113,6 +136,26 @@ impl Chip8 {
     pub fn op_8xy4(&mut self, vx: usize, vy: usize) {
         if vx > 0xF || vy > 0xF { panic!("Invalid register accessed"); }
         self.var_registers[vx] += self.var_registers[vy];
+    }
+
+    /** 8XY5 - Sets VX to [VX] - [VY] */
+    pub fn op_8xy5(&mut self, vx: usize, vy: usize) {
+        if vx > 0xF || vy > 0xF { panic!("Invalid register accessed"); }
+        self.var_registers[vx] -= self.var_registers[vy];
+    }
+
+    /** 8XY5 - Sets VX to [VY] - [VX] */
+    pub fn op_8xy7(&mut self, vx: usize, vy: usize) {
+        if vx > 0xF || vy > 0xF { panic!("Invalid register accessed"); }
+        self.var_registers[vx] = self.var_registers[vy] - self.var_registers[vx];
+    }
+
+    /** 9XY0 - Skip if var_register[VX] == var_register[VY] */
+    pub fn op_9xy0(&mut self, vx: usize, vy: usize) {
+        if vx > 0xF || vy > 0xF { panic!("Attempting to jump to an out of bounds location"); }
+        if self.var_registers[vx] != self.var_registers[vy] {
+            self.program_counter += 2;
+        }
     }
 
     /** ANNN - Sets the index register I to value NNN */
