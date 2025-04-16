@@ -1,3 +1,4 @@
+use rand::random;
 use super::*;
 
 #[test]
@@ -215,5 +216,14 @@ fn op_9xy0_matches() {
     chip.var_registers[0x3] = 0x8;
     let expected_pc = chip.program_counter;
     chip.op_9xy0(0x2, 0x3);
+    assert_eq!(expected_pc, chip.program_counter);
+}
+
+#[test]
+fn op_bnnn_valid() {
+    let mut chip = Chip8::new();
+    chip.var_registers[0x0] = 0x6;
+    let expected_pc = 0x6 + 0x1D2;
+    chip.op_bnnn(0x1D2);
     assert_eq!(expected_pc, chip.program_counter);
 }

@@ -52,11 +52,12 @@ fn main() {
             (0x8, _, _, 0xE) => { /* shift */ }
             (0x9, _, _, 0x0) => { chip8.op_9xy0(x, y); }
             (0xA, _, _, _) => { chip8.op_annn(nnn); }
-            (0xB, _, _, _) => { /* jump with offset */ }
-            (0xC, _, _, _) => { /* random */ }
+            (0xB, _, _, _) => { chip8.op_bnnn(nnn); }
+            (0xC, _, _, _) => { chip8.op_cxnn(x, nn); }
             (0xD, _, _, _) => { chip8.draw(x, y, n as usize); }
             (0xE, _, 0x9, 0xE) => { /* skip if key */ }
             (0xE, _, 0xA, 0x1) => { /* skip if key */ }
+            (0xF, _, 0x0, 0xA) => { chip8.op_fx0a(); }
             (0xF, _, 0x1, 0xE) => { chip8.add_i_index(x); }
             _ => { panic!("Unsupported opcode"); }
         }

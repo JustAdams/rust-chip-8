@@ -163,6 +163,19 @@ impl Chip8 {
         self.index_reg = nnn;
     }
 
+    /** BNNN - Jumps to address NNN plus value in var_registers[V0] */
+    pub fn op_bnnn(&mut self, nnn: u16) {
+        let next_addr = (nnn + self.var_registers[0x0] as u16) as usize;
+        self.program_counter = next_addr;
+    }
+
+    /** CXNN - Generate a random number, & with NN, and set to VX */
+    pub fn op_cxnn(&mut self, x: usize, nn: u8) {
+        let rand_num = rand::random::<u8>();
+        let new_val = rand_num & nn;
+        self.var_registers[x] = new_val;
+    }
+
     /** DXYN - Sets a sprite from memory to the VX and VY coordinates */
     pub fn draw(&mut self, vx: usize, vy: usize, n: usize) {
         self.var_registers[0xF] = 0x0;
@@ -178,6 +191,12 @@ impl Chip8 {
                 self.display[y_coord][x_coord] ^= bit;
             }
         }
+    }
+
+    /** FX0A - Get key loops until a key is pressed */
+    pub fn op_fx0a(&mut self) {
+        // check for key input
+        self.program_counter -= 2;
     }
 
     /** FX1E - Add to I index */
